@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "FreelanceWealth",
+    "slug": "freelancewealth",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+"splash": {
+  "image": "./assets/splash.png",
+  "resizeMode": "contain",
+  "backgroundColor": "#1A1612"
+},
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.freelancewealth.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1A1612"
+      },
+      "package": "com.freelancewealth.app"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      "expo-asset"
+    ]
+  }
+}
