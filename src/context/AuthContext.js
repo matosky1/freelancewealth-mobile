@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.76:5000';
+const BASE_URL = 'https://freelancewealth-backend.onrender.com';
 
 const api = axios.create({ baseURL: BASE_URL });
 
