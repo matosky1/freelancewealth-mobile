@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from './Sidebar';
@@ -11,12 +11,12 @@ export default function ScreenLayout({ children, title }) {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1612" />
+    <View style={[s.root, { paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A1612" translucent={false} />
       <SafeAreaView style={s.safe} edges={['top']}>
-        {/* Top header */}
         <View style={s.header}>
           <TouchableOpacity style={s.menuBtn} onPress={() => setSidebarOpen(true)}>
             <View style={s.menuLine} />
@@ -32,12 +32,10 @@ export default function ScreenLayout({ children, title }) {
         </View>
       </SafeAreaView>
 
-      {/* Screen content */}
       <View style={s.content}>
         {children}
       </View>
 
-      {/* Sidebar overlay */}
       <Sidebar
         open={sidebarOpen}
         setOpen={setSidebarOpen}

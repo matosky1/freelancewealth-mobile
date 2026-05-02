@@ -1,11 +1,14 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, SafeAreaView, StyleSheet, TouchableOpacity, Dimensions, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { api } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
+import ScreenLayout from '../components/ScreenLayout';
+import * as SecureStore from 'expo-secure-store';
 
 const { width } = Dimensions.get('window');
-const CHART_WIDTH = width - 64;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const getCurrencySymbol = (code) => {
@@ -17,7 +20,6 @@ const fmt = (symbol, n) => `${symbol}${(parseFloat(n) || 0).toLocaleString('en-U
 
 function BarChart({ data }) {
   const maxVal = Math.max(...data.map(d => Math.max(d.income, d.expenses)), 1);
-
   return (
     <View style={chart.container}>
       <View style={chart.bars}>
@@ -65,13 +67,32 @@ export default function ReportsScreen() {
   const downloadPDF = async () => {
     setDownloading(true);
     try {
-      // Open PDF in browser — mobile can't download directly
-      const token = (await api.get('/api/auth/me')).config?.headers?.Authorization?.replace('Bearer ', '');
+      const token = await SecureStore.getItemAsync('fw_token');
       const baseURL = api.defaults.baseURL;
       const url = `${baseURL}/api/reports/pdf?year=${year}`;
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Error', 'Could not open PDF. Please try from the web app.');
+      
+      const fileUri = FileSystem.documentDirectory + `FreelanceWealth-Report-${year}.pdf`;
+      
+      const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (downloadResult.status === 200) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `FreelanceWealth Report ${year}`,
+          });
+        } else {
+          Alert.alert('Downloaded!', `Report saved to ${downloadResult.uri}`);
+        }
+      } else {
+        Alert.alert('Error', 'Failed to download PDF. Please try again.');
+      }
+    } catch (err) {
+      console.error('PDF error:', err);
+      Alert.alert('Error', 'Could not download PDF. Please try from the web app.');
     }
     setDownloading(false);
   };
@@ -82,30 +103,25 @@ export default function ReportsScreen() {
   const totalExpenses = parseFloat(summary?.total_expenses || 0);
 
   return (
-    <SafeAreaView style={s.safe}>
-      <ScrollView>
-        <View style={s.header}>
-          <View>
-            <Text style={s.title}>Reports</Text>
-            <Text style={s.sub}>Financial overview</Text>
-          </View>
-          <View style={s.yearRow}>
-            <TouchableOpacity onPress={() => setYear(y => y - 1)} style={s.yearBtn}>
-              <Text style={s.yearBtnText}>‹</Text>
-            </TouchableOpacity>
-            <Text style={s.yearText}>{year}</Text>
-            <TouchableOpacity onPress={() => setYear(y => y + 1)} style={s.yearBtn}>
-              <Text style={s.yearBtnText}>›</Text>
-            </TouchableOpacity>
-          </View>
+    <ScreenLayout title="Reports">
+      <ScrollView style={{ flex: 1 }}>
+        {/* Year selector */}
+        <View style={s.yearRow}>
+          <TouchableOpacity onPress={() => setYear(y => y - 1)} style={s.yearBtn}>
+            <Text style={s.yearBtnText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={s.yearText}>{year}</Text>
+          <TouchableOpacity onPress={() => setYear(y => y + 1)} style={s.yearBtn}>
+            <Text style={s.yearBtnText}>›</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Download PDF button */}
+        {/* Download PDF */}
         <TouchableOpacity style={s.pdfBtn} onPress={downloadPDF} disabled={downloading}>
-          <Text style={s.pdfBtnText}>{downloading ? 'Opening...' : '📄 Download PDF Report'}</Text>
+          <Text style={s.pdfBtnText}>{downloading ? '⏳ Downloading...' : '📄 Download PDF Report'}</Text>
         </TouchableOpacity>
 
-        {/* Year summary */}
+        {/* Summary KPIs */}
         <View style={s.summaryGrid}>
           {[
             { label: 'Total Income', value: fmt(symbol, summary?.total_income), color: '#4A6741' },
@@ -173,8 +189,10 @@ export default function ReportsScreen() {
             ))}
           </View>
         )}
+
+        <View style={{ height: 32 }} />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
@@ -194,17 +212,13 @@ const chart = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EC' },
-  header: { backgroundColor: '#1A1612', padding: 24, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  sub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
-  yearRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  yearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 16, backgroundColor: '#1A1612' },
   yearBtn: { padding: 8 },
-  yearBtnText: { color: COLORS.gold, fontSize: 22, fontWeight: '700' },
-  yearText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  pdfBtn: { margin: 16, marginBottom: 0, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1.5, borderColor: '#E2DDD6', flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  yearBtnText: { color: COLORS.gold, fontSize: 24, fontWeight: '700' },
+  yearText: { color: '#fff', fontSize: 18, fontWeight: '700', minWidth: 60, textAlign: 'center' },
+  pdfBtn: { margin: 16, marginBottom: 12, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1.5, borderColor: '#E2DDD6' },
   pdfBtnText: { color: '#1A1612', fontWeight: '600', fontSize: 14 },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10, backgroundColor: '#1A1612' },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 12, gap: 10, backgroundColor: '#1A1612' },
   summaryCard: { width: '47%', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   summaryLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
   summaryValue: { fontSize: 18, fontWeight: '900' },
