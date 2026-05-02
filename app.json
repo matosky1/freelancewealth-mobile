@@ -5,25 +5,35 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-"splash": {
-  "image": "./assets/splash.png",
-  "resizeMode": "contain",
-  "backgroundColor": "#1A1612"
-},
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1612"
+    },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.freelancewealth.app"
+      "bundleIdentifier": "com.freelancewealth.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1A1612"
       },
-      "package": "com.freelancewealth.app"
+      "package": "com.freelancewealth.app",
+      "versionCode": 1
     },
     "plugins": [
       "expo-font",
       "expo-secure-store",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a0a10c37-4105-4f93-aba9-20a9eb08cfc2"
+      }
+    },
+    "owner": "matosky"
   }
 }
