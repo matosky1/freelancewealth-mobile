@@ -90,10 +90,10 @@ export default function ReportsScreen() {
       } else {
         Alert.alert('Error', 'Failed to download PDF. Please try again.');
       }
-    } catch (err) {
-      console.error('PDF error:', err);
-      Alert.alert('Error', 'Could not download PDF. Please try from the web app.');
-    }
+   } catch (err) {
+  console.error('PDF error:', err);
+  Alert.alert('Error', `Download failed: ${err.message}`);
+}
     setDownloading(false);
   };
 
