@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, SafeAreaView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
+import ScreenLayout from '../components/ScreenLayout';
 
 const getCurrencySymbol = (code) => {
   const map = { USD: '$', GBP: '£', EUR: '€', CAD: 'CA$', NGN: '₦', GHS: 'GH₵', ZAR: 'R', AUD: 'A$', INR: '₹', JPY: '¥', KES: 'KSh', AED: 'د.إ' };
@@ -36,21 +37,18 @@ export default function TaxScreen() {
   const monthlyReserve = taxOwed / 12;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <ScreenLayout title="Tax Estimator">
       <ScrollView>
-        <View style={s.header}>
-          <Text style={s.title}>Tax Estimator</Text>
-          <Text style={s.sub}>Based on your {taxRate}% custom tax rate</Text>
+        <View style={s.subHeader}>
+          <Text style={s.subHeaderText}>Based on your {taxRate}% custom tax rate</Text>
         </View>
 
-        {/* Main tax card */}
         <View style={s.card}>
           <Text style={s.cardTitle}>ESTIMATED TAX OWED</Text>
           <Text style={s.bigNum}>{fmtAmt(symbol, taxOwed)}</Text>
           <Text style={s.rateNote}>At {taxRate}% of your net income</Text>
         </View>
 
-        {/* Breakdown */}
         <View style={s.breakdown}>
           <Text style={s.breakdownTitle}>Breakdown</Text>
           {[
@@ -66,7 +64,6 @@ export default function TaxScreen() {
           ))}
         </View>
 
-        {/* Monthly reserve */}
         <View style={s.reserve}>
           <Text style={s.reserveLabel}>Monthly reserve to set aside</Text>
           <Text style={s.reserveAmt}>{fmtAmt(symbol, monthlyReserve)}</Text>
@@ -78,16 +75,15 @@ export default function TaxScreen() {
             <Text style={s.noTaxText}>⚙️ Set your tax rate in Profile → Financial Settings to see your tax estimate.</Text>
           </View>
         )}
+        <View style={{ height: 32 }} />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EC' },
-  header: { backgroundColor: '#1A1612', padding: 24, paddingTop: 12 },
-  title: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  sub: { color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 2 },
+  subHeader: { backgroundColor: '#1A1612', paddingHorizontal: 24, paddingBottom: 16 },
+  subHeaderText: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   card: { backgroundColor: '#1A1612', margin: 16, borderRadius: 16, padding: 24, alignItems: 'center' },
   cardTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5 },
   bigNum: { color: '#E8B86D', fontSize: 48, fontWeight: '900', marginTop: 8 },

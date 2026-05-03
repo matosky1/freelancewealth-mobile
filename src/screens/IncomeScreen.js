@@ -1,8 +1,14 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, SafeAreaView, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { api } from '../context/AuthContext';
-import { COLORS, fmt } from '../utils/theme';
+import { COLORS } from '../utils/theme';
+import ScreenLayout from '../components/ScreenLayout';
+
+const getCurrencySymbol = (code) => {
+  const map = { USD: '$', GBP: '£', EUR: '€', CAD: 'CA$', NGN: '₦', GHS: 'GH₵', ZAR: 'R', AUD: 'A$', INR: '₹', JPY: '¥', KES: 'KSh', AED: 'د.إ' };
+  return map[code] || '$';
+};
 
 export default function IncomeScreen() {
   const navigation = useNavigation();
@@ -23,30 +29,24 @@ export default function IncomeScreen() {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const handleDelete = (id) => {
-    Alert.alert('Delete Income', 'Are you sure you want to delete this?', [
+    Alert.alert('Delete Income', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await api.delete(`/api/transactions/${id}`);
-            setItems(prev => prev.filter(i => i.id !== id));
-          } catch {
-            Alert.alert('Error', 'Failed to delete');
-          }
-        }
-      }
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.delete(`/api/transactions/${id}`);
+          setItems(prev => prev.filter(i => i.id !== id));
+        } catch { Alert.alert('Error', 'Failed to delete'); }
+      }}
     ]);
   };
 
   const total = items.reduce((s, t) => s + parseFloat(t.amount), 0);
 
   return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.header}>
-        <Text style={s.title}>Income</Text>
+    <ScreenLayout title="Income">
+      <View style={s.subHeader}>
         <Text style={s.total}>{userCurrency}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text>
-        <Text style={s.sub}>This month</Text>
+        <Text style={s.sub}>Total income</Text>
       </View>
       <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('AddIncome')}>
         <Text style={s.addBtnText}>+ Log Income</Text>
@@ -72,20 +72,13 @@ export default function IncomeScreen() {
         ListEmptyComponent={<Text style={s.empty}>No income logged yet.</Text>}
         contentContainerStyle={{ padding: 16 }}
       />
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
-const getCurrencySymbol = (code) => {
-  const map = { USD: '$', GBP: '£', EUR: '€', CAD: 'CA$', NGN: '₦', GHS: 'GH₵', ZAR: 'R', AUD: 'A$', INR: '₹', JPY: '¥', KES: 'KSh', AED: 'د.إ' };
-  return map[code] || '$';
-};
-
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EC' },
-  header: { backgroundColor: COLORS.darkBg, padding: 24, paddingTop: 12 },
-  title: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  total: { color: COLORS.goldLight, fontSize: 40, fontWeight: '900', marginTop: 8 },
+  subHeader: { backgroundColor: '#1A1612', paddingHorizontal: 24, paddingBottom: 16 },
+  total: { color: COLORS.goldLight, fontSize: 36, fontWeight: '900' },
   sub: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   addBtn: { margin: 16, marginBottom: 0, backgroundColor: '#4A6741', borderRadius: 50, padding: 14, alignItems: 'center' },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

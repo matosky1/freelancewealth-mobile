@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { api } from '../context/AuthContext';
 import { COLORS } from '../utils/theme';
+import ScreenLayout from '../components/ScreenLayout';
 
 const SUGGESTED = [
   "How is my business performing this month?",
@@ -30,13 +31,9 @@ export default function AIScreen() {
         const billing = await api.get('/api/billing/status');
         const userPlan = billing.data.plan || 'free';
         setPlan(userPlan);
-
         if (userPlan === 'free') { setLoadingHistory(false); return; }
-
         const history = await api.get('/api/ai/history');
-        if (history.data.length > 0) {
-          setMessages([GREETING, ...history.data]);
-        }
+        if (history.data.length > 0) setMessages([GREETING, ...history.data]);
       } catch {}
       setLoadingHistory(false);
     };
@@ -47,30 +44,23 @@ export default function AIScreen() {
     const userMsg = text || input.trim();
     if (!userMsg) return;
     setInput('');
-
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-
     try {
       const res = await api.post('/api/ai/chat', { message: userMsg });
       setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }]);
     } catch (err) {
       if (err.response?.data?.error === 'upgrade_required') {
-        Alert.alert(
-          '⭐ Pro Feature',
-          'AI Analysis requires a Pro or Business plan.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'See Pricing', onPress: () => navigation.navigate('Pricing') }
-          ]
-        );
+        Alert.alert('⭐ Pro Feature', 'AI Analysis requires a Pro or Business plan.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'See Pricing', onPress: () => navigation.navigate('Pricing') }
+        ]);
         setMessages(prev => prev.slice(0, -1));
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, something went wrong. Please try again." }]);
       }
     }
-
     setLoading(false);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
@@ -78,21 +68,13 @@ export default function AIScreen() {
   const clearHistory = () => {
     Alert.alert('Clear History', 'Delete all chat history?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: async () => {
-        await api.delete('/api/ai/history');
-        setMessages([GREETING]);
-      }}
+      { text: 'Clear', style: 'destructive', onPress: async () => { await api.delete('/api/ai/history'); setMessages([GREETING]); } }
     ]);
   };
 
-  // Free plan upgrade wall
   if (plan === 'free' && !loadingHistory) {
     return (
-      <SafeAreaView style={s.safe}>
-        <View style={s.header}>
-          <Text style={s.title}>AI Analysis</Text>
-          <Text style={s.sub}>Powered by Claude</Text>
-        </View>
+      <ScreenLayout title="AI Analysis">
         <View style={s.upgradeWall}>
           <Text style={s.upgradeIcon}>✦</Text>
           <Text style={s.upgradeTitle}>AI Analysis is a Pro Feature</Text>
@@ -107,22 +89,18 @@ export default function AIScreen() {
           </TouchableOpacity>
           <Text style={s.upgradeNote}>Cancel anytime. No hidden fees.</Text>
         </View>
-      </SafeAreaView>
+      </ScreenLayout>
     );
   }
 
   return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.header}>
-        <View>
-          <Text style={s.title}>AI Analysis</Text>
-          <Text style={s.sub}>Powered by Claude</Text>
-        </View>
+    <ScreenLayout title="AI Analysis">
+      <View style={s.clearRow}>
+        <Text style={s.poweredBy}>Powered by Claude</Text>
         <TouchableOpacity onPress={clearHistory}>
-          <Text style={s.clearBtn}>Clear</Text>
+          <Text style={s.clearBtn}>Clear history</Text>
         </TouchableOpacity>
       </View>
-
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={90}>
         <ScrollView ref={scrollRef} style={s.messages} contentContainerStyle={{ padding: 16, paddingBottom: 8 }}>
           {loadingHistory ? (
@@ -137,7 +115,6 @@ export default function AIScreen() {
                   </View>
                 </View>
               ))}
-
               {loading && (
                 <View style={[s.bubble, s.aiBubble]}>
                   <View style={s.aiAvatar}><Text style={s.aiAvatarText}>✦</Text></View>
@@ -146,7 +123,6 @@ export default function AIScreen() {
                   </View>
                 </View>
               )}
-
               {messages.length === 1 && !loading && (
                 <View style={s.suggestions}>
                   <Text style={s.suggestionsTitle}>Try asking:</Text>
@@ -161,37 +137,21 @@ export default function AIScreen() {
             </>
           )}
         </ScrollView>
-
         <View style={s.inputRow}>
-          <TextInput
-            style={s.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask anything about your finances..."
-            placeholderTextColor="#8A7E72"
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnDisabled]}
-            onPress={() => sendMessage()}
-            disabled={!input.trim() || loading}
-          >
+          <TextInput style={s.input} value={input} onChangeText={setInput} placeholder="Ask anything about your finances..." placeholderTextColor="#8A7E72" multiline maxLength={500} />
+          <TouchableOpacity style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnDisabled]} onPress={() => sendMessage()} disabled={!input.trim() || loading}>
             <Text style={s.sendBtnText}>↑</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EC' },
-  header: { backgroundColor: '#1A1612', padding: 24, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  sub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  clearRow: { backgroundColor: '#1A1612', paddingHorizontal: 24, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  poweredBy: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
   clearBtn: { color: COLORS.gold, fontSize: 13, fontWeight: '600' },
-
   upgradeWall: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   upgradeIcon: { fontSize: 56, color: COLORS.gold, marginBottom: 16 },
   upgradeTitle: { fontSize: 22, fontWeight: '900', color: '#1A1612', textAlign: 'center', marginBottom: 12 },
@@ -201,12 +161,11 @@ const s = StyleSheet.create({
   upgradeBtn: { backgroundColor: COLORS.gold, borderRadius: 50, paddingVertical: 16, paddingHorizontal: 32, marginBottom: 12 },
   upgradeBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   upgradeNote: { fontSize: 12, color: '#8A7E72' },
-
   messages: { flex: 1 },
   bubble: { flexDirection: 'row', marginBottom: 12, alignItems: 'flex-end' },
   userBubble: { justifyContent: 'flex-end' },
   aiBubble: { justifyContent: 'flex-start' },
-  aiAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.gold, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 2, flexShrink: 0 },
+  aiAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.gold, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 2 },
   aiAvatarText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   bubbleInner: { maxWidth: '80%', borderRadius: 18, padding: 12 },
   userBubbleInner: { backgroundColor: '#1A1612', borderBottomRightRadius: 4 },
@@ -214,13 +173,11 @@ const s = StyleSheet.create({
   bubbleText: { fontSize: 14, lineHeight: 22 },
   userText: { color: '#fff' },
   aiText: { color: '#1A1612' },
-
   suggestions: { marginTop: 8 },
   suggestionsTitle: { fontSize: 11, color: '#8A7E72', marginBottom: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   suggestionBtn: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, borderWidth: 1, borderColor: '#E2DDD6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   suggestionText: { fontSize: 13, color: '#1A1612', flex: 1 },
   suggestionArrow: { fontSize: 13, color: COLORS.gold, marginLeft: 8 },
-
   inputRow: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E2DDD6', alignItems: 'flex-end', gap: 10 },
   input: { flex: 1, backgroundColor: '#F7F3EC', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: '#1A1612', maxHeight: 100, borderWidth: 1, borderColor: '#E2DDD6' },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A1612', alignItems: 'center', justifyContent: 'center' },
